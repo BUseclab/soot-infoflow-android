@@ -109,6 +109,7 @@ public class Test {
 	private static boolean librarySummaryTaintWrapper = false;
 	private static String summaryPath = "";
 	private static PathBuilder pathBuilder = PathBuilder.ContextInsensitiveSourceFinder;
+	private static boolean useFragments = false;
 	
 	private static CallgraphAlgorithm callgraphAlgorithm = CallgraphAlgorithm.AutomaticSelection;
 	
@@ -313,6 +314,10 @@ public class Test {
 				summaryPath = args[i + 1];
 				i += 2;
 			}
+			else if (args[i].equalsIgnoreCase("--fragments")){
+				useFragments = true;
+				i++;
+			}
 			else
 				i++;
 		}
@@ -487,6 +492,7 @@ public class Test {
 			app.setFlowSensitiveAliasing(flowSensitiveAliasing);
 			app.setPathBuilder(pathBuilder);
 			app.setComputeResultPaths(computeResultPaths);
+			app.setUseFragments(useFragments);
 			
 			final ITaintPropagationWrapper taintWrapper;
 			if (librarySummaryTaintWrapper) {
@@ -586,6 +592,7 @@ public class Test {
 		System.out.println("\t--AGGRESSIVETW Use taint wrapper in aggressive mode");
 		System.out.println("\t--PATHALGO Use path reconstruction algorithm x");
 		System.out.println("\t--LIBSUMTW Use library summary taint wrapper");
+		System.out.println("\t--FRAGMENTS Enable use of Fragments, not enabled by default");
 		System.out.println("\t--SUMMARYPATH Path to library summaries");
 		System.out.println();
 		System.out.println("Supported callgraph algorithms: AUTO, CHA, RTA, VTA, SPARK");
