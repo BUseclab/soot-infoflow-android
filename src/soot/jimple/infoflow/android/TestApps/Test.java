@@ -155,7 +155,6 @@ public class Test {
 		
 		List<String> apkFiles = new ArrayList<String>();
 		File apkFile = new File(args[0]);
-		String extension = apkFile.getName().substring(apkFile.getName().lastIndexOf("."));
 		if (apkFile.isDirectory()) {
 			String[] dirFiles = apkFile.list(new FilenameFilter() {
 			
@@ -167,19 +166,22 @@ public class Test {
 			});
 			for (String s : dirFiles)
 				apkFiles.add(s);
-		}
-		else if (extension.equalsIgnoreCase(".txt")) {
-			BufferedReader rdr = new BufferedReader(new FileReader(apkFile));
-			String line = null;
-			while ((line = rdr.readLine()) != null)
-				apkFiles.add(line);
-			rdr.close();
-		}
-		else if (extension.equalsIgnoreCase(".apk"))
-			apkFiles.add(args[0]);
-		else {
-			System.err.println("Invalid input file format: " + extension);
-			return;
+		} else {
+			String extension = apkFile.getName().substring(apkFile.getName().lastIndexOf("."));
+
+			if (extension.equalsIgnoreCase(".txt")) {
+				BufferedReader rdr = new BufferedReader(new FileReader(apkFile));
+				String line = null;
+				while ((line = rdr.readLine()) != null)
+					apkFiles.add(line);
+				rdr.close();
+			}
+			else if (extension.equalsIgnoreCase(".apk"))
+				apkFiles.add(args[0]);
+			else {
+				System.err.println("Invalid input file format: " + extension);
+				return;
+			}
 		}
 
 		for (final String fileName : apkFiles) {
