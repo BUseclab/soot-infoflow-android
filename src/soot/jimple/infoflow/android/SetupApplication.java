@@ -77,6 +77,7 @@ public class SetupApplication {
 	private boolean ignoreFlowsInSystemPackages = true;
 	private boolean enableCallbackSources = true;
 	private boolean computeResultPaths = true;
+	private boolean useFragments = false;
 
 	private int accessPathLength = 5;
 	private LayoutMatchingMode layoutMatchingMode = LayoutMatchingMode.MatchSensitiveOnly;
@@ -328,6 +329,11 @@ public class SetupApplication {
 		this.appPackageName = processMan.getPackageName();
 		this.entrypoints = processMan.getEntryPointClasses();
 
+		if (this.useFragments){
+			Set<String> fragments = findFragments();
+			this.entrypoints.addAll(fragments);
+		}
+		
 		// Parse the resource file
 		long beforeARSC = System.nanoTime();
 		ARSCFileParser resParser = new ARSCFileParser();
@@ -369,6 +375,19 @@ public class SetupApplication {
 		}
 
 		entryPointCreator = createEntryPointCreator();
+	}
+	
+	/**
+	 * Find the fragments in the apk
+	 * @return A set contain string of Fragment class names
+	 */
+	private Set<String> findFragments(){
+		soot.G.reset();
+		initializeSoot();
+
+		FragmentLocator analyze = new FragmentLocator();
+		analyze.collectFragments();
+		return analyze.getFragmentClasses();
 	}
 
 	/**
@@ -882,4 +901,12 @@ public class SetupApplication {
 		this.codeEliminationMode = mode;
 	}
 
+	/**
+	 * Set whether Fragments will be used in this flow analysis
+	 * 
+	 * @param useFragments
+	 */
+	public void setUseFragments(boolean useFragments){
+		this.useFragments = useFragments;
+	}
 }
