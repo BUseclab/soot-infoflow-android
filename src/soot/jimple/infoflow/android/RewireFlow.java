@@ -235,7 +235,7 @@ public class RewireFlow implements PreAnalysisHandler {
 			for (SootMethod method : methods){
 				if (method.getName().startsWith("doInBackground")){
 					Body body = method.retrieveActiveBody();
-					logger.debug("{}", body);
+					logger.trace("{}", body);
 
 				}
 			}
