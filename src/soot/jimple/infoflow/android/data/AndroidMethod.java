@@ -41,6 +41,7 @@ public class AndroidMethod extends SootMethodAndClass {
 		AUDIO, SMS_MMS, CONTACT_INFORMATION, CALENDAR_INFORMATION, SYSTEM_SETTINGS, IMAGE, BROWSER_INFORMATION, NFC
 	}
 
+
 	private final Set<String> permissions;
 
 	private boolean isSource = false;
@@ -170,4 +171,5 @@ public class AndroidMethod extends SootMethodAndClass {
 		return new AndroidMethod(smac.getMethodName(), smac.getParameters(),
 				smac.getReturnType(), smac.getClassName());
 	}
+
 }

@@ -37,6 +37,7 @@ import soot.jimple.InvokeExpr;
 import soot.jimple.ParameterRef;
 import soot.jimple.Stmt;
 import soot.jimple.StringConstant;
+import soot.jimple.infoflow.android.data.AndroidMethod;
 import soot.jimple.infoflow.android.resources.ARSCFileParser;
 import soot.jimple.infoflow.android.resources.ARSCFileParser.AbstractResource;
 import soot.jimple.infoflow.android.resources.ARSCFileParser.ResPackage;
@@ -344,6 +345,15 @@ public class AndroidSourceSinkManager implements ISourceSinkManager {
 		if (sCallSite.containsInvokeExpr()) {
 			String signature = methodToSignature.getUnchecked(
 					sCallSite.getInvokeExpr().getMethod());
+			
+			//Check if line number is included
+			SootMethod sm = cfg.getMethodOf(sCallSite);//sCallSite.getInvokeExpr().getMethod();
+			AndroidMethod am = new AndroidMethod(sm);
+			am.setLineNumber(sCallSite.getJavaSourceStartLineNumber());
+			am.setDeclaredClass(sm.getDeclaringClass().getName());
+			if (this.sourceMethods.containsKey(am.getSignature()))
+				return SourceType.MethodCall;
+			
 			if (this.sourceMethods.containsKey(signature))
 				return SourceType.MethodCall;
 

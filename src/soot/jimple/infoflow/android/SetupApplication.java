@@ -45,6 +45,7 @@ import soot.jimple.infoflow.android.resources.LayoutControl;
 import soot.jimple.infoflow.android.resources.LayoutFileParser;
 import soot.jimple.infoflow.android.source.AccessPathBasedSourceSinkManager;
 import soot.jimple.infoflow.android.source.AndroidSourceSinkManager.LayoutMatchingMode;
+import soot.jimple.infoflow.android.source.SpecificAccessPathBasedSourceSinkManager;
 import soot.jimple.infoflow.android.source.data.ISourceSinkDefinitionProvider;
 import soot.jimple.infoflow.android.source.data.SourceSinkDefinition;
 import soot.jimple.infoflow.android.source.parsers.xml.XMLSourceSinkParser;
@@ -54,6 +55,7 @@ import soot.jimple.infoflow.data.SootMethodAndClass;
 import soot.jimple.infoflow.data.pathBuilders.DefaultPathBuilderFactory;
 import soot.jimple.infoflow.data.pathBuilders.DefaultPathBuilderFactory.PathBuilder;
 import soot.jimple.infoflow.entryPointCreators.AndroidEntryPointCreator;
+import soot.jimple.infoflow.handlers.PreAnalysisHandler;
 import soot.jimple.infoflow.handlers.ResultsAvailableHandler;
 import soot.jimple.infoflow.ipc.IIPCManager;
 import soot.jimple.infoflow.results.InfoflowResults;
@@ -90,12 +92,22 @@ public class SetupApplication {
 	private String appPackageName = "";
 
 	private final String androidJar;
+	
+	public String getAndroidJar(){
+		return androidJar;
+	}
 	private final boolean forceAndroidJar;
+	public boolean isForceAndroidJar(){
+		return forceAndroidJar;
+	}
 	private final String apkFileLocation;
+	public String getApkFileLocation(){
+		return apkFileLocation;
+	}
 	private ITaintPropagationWrapper taintWrapper;
 	private PathBuilder pathBuilder = PathBuilder.ContextInsensitiveSourceFinder;
 
-	private AccessPathBasedSourceSinkManager sourceSinkManager = null;
+	private SpecificAccessPathBasedSourceSinkManager sourceSinkManager = null;
 	private AndroidEntryPointCreator entryPointCreator = null;
 
 	private IInfoflowConfig sootConfig = null;
@@ -362,7 +374,7 @@ public class SetupApplication {
 			for (Set<SootMethodAndClass> methods : this.callbackMethods.values())
 				callbacks.addAll(methods);
 
-			sourceSinkManager = new AccessPathBasedSourceSinkManager(
+			sourceSinkManager = new SpecificAccessPathBasedSourceSinkManager(
 					this.sourceSinkProvider.getSources(),
 					this.sourceSinkProvider.getSinks(),
 					callbacks,
@@ -373,7 +385,6 @@ public class SetupApplication {
 			sourceSinkManager.setResourcePackages(this.resourcePackages);
 			sourceSinkManager.setEnableCallbackSources(this.enableCallbackSources);
 		}
-
 		entryPointCreator = createEntryPointCreator();
 	}
 	
@@ -584,14 +595,14 @@ public class SetupApplication {
 	 * 
 	 * @return FlowDroid's source/sink manager
 	 */
-	public AccessPathBasedSourceSinkManager getSourceSinkManager() {
+	public SpecificAccessPathBasedSourceSinkManager getSourceSinkManager() {
 		return sourceSinkManager;
 	}
 
 	/**
 	 * Initializes soot for running the soot-based phases of the application metadata analysis
 	 */
-	private void initializeSoot() {
+	public void initializeSoot() {
 		Options.v().set_no_bodies_for_excluded(true);
 		Options.v().set_allow_phantom_refs(true);
 		Options.v().set_output_format(Options.output_format_none);
@@ -644,6 +655,8 @@ public class SetupApplication {
 	 * @return The results of the data flow analysis
 	 */
 	public InfoflowResults runInfoflow(ResultsAvailableHandler onResultsAvailable) {
+		
+		
 		if (this.sourceSinkProvider == null)
 			throw new RuntimeException("Sources and/or sinks not calculated yet");
 
@@ -684,6 +697,10 @@ public class SetupApplication {
 
 		info.setCallgraphAlgorithm(callgraphAlgorithm);
 
+		List<PreAnalysisHandler> preprocessors = new ArrayList<PreAnalysisHandler>();
+		preprocessors.add(new RewireFlow());
+		info.setPreProcessors(preprocessors);
+		
 		if (null != ipcManager) {
 			info.setIPCManager(ipcManager);
 		}

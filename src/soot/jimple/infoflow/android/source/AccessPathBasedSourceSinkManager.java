@@ -143,7 +143,7 @@ public class AccessPathBasedSourceSinkManager extends AndroidSourceSinkManager {
 	 * @param apt The definition from which to create the new access path
 	 * @return The newly created access path
 	 */
-	private AccessPath getAccessPathFromDef(Value baseVal, AccessPathTuple apt) {
+	protected AccessPath getAccessPathFromDef(Value baseVal, AccessPathTuple apt) {
 		if (baseVal.getType() instanceof PrimType
 				|| apt.getFields() == null
 				|| apt.getFields().length == 0)

@@ -38,9 +38,12 @@ public class PermissionMethodParser implements ISourceSinkDefinitionProvider {
 	private static final int INITIAL_SET_SIZE = 10000;
 	
 	private List<String> data;
-	private final String regex = "^<(.+):\\s*(.+)\\s+(.+)\\s*\\((.*)\\)>\\s*(.*?)(\\s+->\\s+(.*))?$";
+	//Allow the specific class and line number the sink/source is located
+	// for example com.example.MyClass:123 <> -> _SINK_
+	private final String regex =      "^((.+):(\\d+)\\s*)?<(.+):\\s*(.+)\\s+(.+)\\s*\\((.*)\\)>\\s*(.*?)(\\s+->\\s+(.*))?$";
+	private final String regexNoRet = "^((.+):(\\d+)\\s*)?<(.+):\\s*(.+)\\s*\\((.*)\\)>\\s*(.*?)?(\\s+->\\s+(.*))?$";
+
 //	private final String regexNoRet = "^<(.+):\\s(.+)\\s?(.+)\\s*\\((.*)\\)>\\s+(.*?)(\\s+->\\s+(.*))?+$";
-	private final String regexNoRet = "^<(.+):\\s*(.+)\\s*\\((.*)\\)>\\s*(.*?)?(\\s+->\\s+(.*))?$";
 	
 	public static PermissionMethodParser fromFile(String fileName) throws IOException {
 		PermissionMethodParser pmp = new PermissionMethodParser();
@@ -136,10 +139,19 @@ public class PermissionMethodParser implements ISourceSinkDefinitionProvider {
 	}
 
 	private AndroidMethod parseMethod(Matcher m, boolean hasReturnType) {
-		assert(m.group(1) != null && m.group(2) != null && m.group(3) != null 
-				&& m.group(4) != null);
+		assert(m.group(4) != null && m.group(5) != null && m.group(6) != null 
+				&& m.group(7) != null);
+		
 		AndroidMethod singleMethod;
-		int groupIdx = 1;
+		int groupIdx = 2; //Skip the full match and also the prefix class line number match
+		
+		//Optional Declared Class
+		String declaredClassGroup = m.group(groupIdx++);
+		String declaredClass = (declaredClassGroup == null) ? null : declaredClassGroup.trim();
+		
+		//Line number
+		String lineNumberGroup = m.group(groupIdx++);
+		int lineNumber = (lineNumberGroup == null) ? -1 : Integer.parseInt(lineNumberGroup);
 		
 		//class name
 		String className = m.group(groupIdx++).trim();
@@ -178,7 +190,8 @@ public class PermissionMethodParser implements ISourceSinkDefinitionProvider {
 		
 		//create method signature
 		singleMethod = new AndroidMethod(methodName, methodParameters, returnType, className, permissions);
-		
+		singleMethod.setDeclaredClass(declaredClass);
+		singleMethod.setLineNumber(lineNumber);
 		if (classData.isEmpty())
 			if(m.group(groupIdx) != null) {
 				classData = m.group(groupIdx).replace("->", "").trim();

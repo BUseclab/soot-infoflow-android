@@ -17,6 +17,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import pxb.android.axml.AxmlVisitor;
 import soot.PackManager;
 import soot.Scene;
@@ -37,7 +40,8 @@ import soot.jimple.infoflow.android.resources.ARSCFileParser.StringResource;
  *
  */
 public class LayoutFileParser extends AbstractResourceParser {
-	
+	private final Logger logger = LoggerFactory.getLogger(getClass());
+
 	private static final boolean DEBUG = true;
 	
 	private final Map<String, Set<LayoutControl>> userControls = new HashMap<String, Set<LayoutControl>>();
@@ -201,8 +205,7 @@ public class LayoutFileParser extends AbstractResourceParser {
 						try {
 							AXmlHandler handler = new AXmlHandler(stream, new AXML20Parser());
 							parseLayoutNode(fileName, handler.getDocument().getRootNode());
-							System.out.println("Found " + userControls.size() + " layout controls in file "
-									+ fileName);
+							logger.debug("Found {} layout controls in file {} ", userControls.size(),  fileName);
 						}
 						catch (Exception ex) {
 							System.err.println("Could not read binary XML file: " + ex.getMessage());

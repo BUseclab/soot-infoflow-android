@@ -19,6 +19,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -96,6 +97,7 @@ public class Test {
 	private static int timeout = -1;
 	private static int sysTimeout = -1;
 	
+	private static String sourcesAndSinksFilePath = "SourcesAndSinks.txt";
 	private static boolean stopAfterFirstFlow = false;
 	private static boolean implicitFlows = false;
 	private static boolean staticTracking = true;
@@ -202,13 +204,14 @@ public class Test {
 			else
 				fullFilePath = fileName;
 
-			// Run the analysis
-			if (timeout > 0)
-				runAnalysisTimeout(fullFilePath, args[1]);
-			else if (sysTimeout > 0)
-				runAnalysisSysTimeout(fullFilePath, args[1]);
-			else
-				runAnalysis(fullFilePath, args[1]);
+				// Run the analysis
+				if (timeout > 0)
+					runAnalysisTimeout(fullFilePath, args[1]);
+				else if (sysTimeout > 0)
+					runAnalysisSysTimeout(fullFilePath, args[1]);
+				else
+					runAnalysis(fullFilePath, args[1]);
+
 
 			System.gc();
 		}
@@ -291,7 +294,8 @@ public class Test {
 				i++;
 			}
 			else if (args[i].equalsIgnoreCase("--aggressivetw")) {
-				aggressiveTaintWrapper = false;
+//TODO Pull request, this could never be true before
+				aggressiveTaintWrapper = true;
 				i++;
 			}
 			else if (args[i].equalsIgnoreCase("--pathalgo")) {
@@ -319,6 +323,10 @@ public class Test {
 			else if (args[i].equalsIgnoreCase("--fragments")){
 				useFragments = true;
 				i++;
+			}
+			else if (args[i].equalsIgnoreCase("--sourcessinks")){
+				sourcesAndSinksFilePath = args[i + 1];
+				i += 2;
 			}
 			else
 				i++;
@@ -391,15 +399,17 @@ public class Test {
 		String classpath = System.getProperty("java.class.path");
 		String javaHome = System.getProperty("java.home");
 		String executable = "/usr/bin/timeout";
+//TODO pull request, this was set to timeout in minutes, docs say seconds
 		String[] command = new String[] { executable,
 				"-s", "KILL",
-				sysTimeout + "m",
+				sysTimeout + "s",
 				javaHome + "/bin/java",
 				"-cp", classpath,
 				"soot.jimple.infoflow.android.TestApps.Test",
 				fileName,
 				androidJar,
 				stopAfterFirstFlow ? "--singleflow" : "--nosingleflow",
+				useFragments ? "--fragments" : "--nofragments",
 				implicitFlows ? "--implicit" : "--noimplicit",
 				staticTracking ? "--static" : "--nostatic", 
 				"--aplength", Integer.toString(accessPathLength),
@@ -411,7 +421,7 @@ public class Test {
 				computeResultPaths ? "--paths" : "--nopaths",
 				aggressiveTaintWrapper ? "--aggressivetw" : "--nonaggressivetw",
 				"--pathalgo", pathAlgorithmToString(pathBuilder) };
-		System.out.println("Running command: " + executable + " " + command);
+		System.out.println("Running command: " + executable + " " + Arrays.toString(command));
 		try {
 			ProcessBuilder pb = new ProcessBuilder(command);
 			pb.redirectOutput(new File("_out_" + new File(fileName).getName() + ".txt"));
@@ -510,7 +520,7 @@ public class Test {
 				taintWrapper = easyTaintWrapper;
 			}
 			app.setTaintWrapper(taintWrapper);
-			app.calculateSourcesSinksEntrypoints("SourcesAndSinks.txt");
+			app.calculateSourcesSinksEntrypoints(sourcesAndSinksFilePath);
 			//app.calculateSourcesSinksEntrypoints("SuSiExport.xml");
 			
 			
@@ -596,6 +606,7 @@ public class Test {
 		System.out.println("\t--LIBSUMTW Use library summary taint wrapper");
 		System.out.println("\t--FRAGMENTS Enable use of Fragments, not enabled by default");
 		System.out.println("\t--SUMMARYPATH Path to library summaries");
+		System.out.println("\t--SOURCESSINKS Full path of SourcesAndSinks.txt");
 		System.out.println();
 		System.out.println("Supported callgraph algorithms: AUTO, CHA, RTA, VTA, SPARK");
 		System.out.println("Supported layout mode algorithms: NONE, PWD, ALL");
