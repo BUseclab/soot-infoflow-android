@@ -264,6 +264,12 @@ public class SourceSinkDefinition {
 				+ ((parameters == null) ? 0 : Arrays.hashCode(parameters));
 		result = prime * result
 				+ ((returnValues == null) ? 0 : returnValues.hashCode());
+		
+		result = prime * result
+				+ ((method != null && method.getDeclaredClass() != null) ? method.getDeclaredClass().hashCode() : 0);
+		result = prime * result
+				+ ((method != null) ? method.getLineNumber() : 0);
+				
 		return result;
 	}
 
@@ -296,6 +302,11 @@ public class SourceSinkDefinition {
 				return false;
 		} else if (!returnValues.equals(other.returnValues))
 			return false;
+		
+		if (!method.getDeclaredClass().equals(other.getMethod().getDeclaredClass())
+			&& method.getLineNumber() != other.getMethod().getLineNumber()){
+				return false;
+			}
 		return true;
 	}
 	

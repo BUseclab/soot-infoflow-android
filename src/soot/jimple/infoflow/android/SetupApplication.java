@@ -32,6 +32,7 @@ import soot.PackManager;
 import soot.Scene;
 import soot.SootClass;
 import soot.SootMethod;
+import soot.Unit;
 import soot.jimple.infoflow.IInfoflow.CallgraphAlgorithm;
 import soot.jimple.infoflow.IInfoflow.CodeEliminationMode;
 import soot.jimple.infoflow.Infoflow;
@@ -51,15 +52,19 @@ import soot.jimple.infoflow.android.source.data.SourceSinkDefinition;
 import soot.jimple.infoflow.android.source.parsers.xml.XMLSourceSinkParser;
 import soot.jimple.infoflow.cfg.BiDirICFGFactory;
 import soot.jimple.infoflow.config.IInfoflowConfig;
+import soot.jimple.infoflow.data.Abstraction;
 import soot.jimple.infoflow.data.SootMethodAndClass;
 import soot.jimple.infoflow.data.pathBuilders.DefaultPathBuilderFactory;
 import soot.jimple.infoflow.data.pathBuilders.DefaultPathBuilderFactory.PathBuilder;
 import soot.jimple.infoflow.entryPointCreators.AndroidEntryPointCreator;
 import soot.jimple.infoflow.handlers.PreAnalysisHandler;
 import soot.jimple.infoflow.handlers.ResultsAvailableHandler;
+import soot.jimple.infoflow.handlers.TaintPropagationHandler;
+import soot.jimple.infoflow.handlers.TaintPropagationHandler.FlowFunctionType;
 import soot.jimple.infoflow.ipc.IIPCManager;
 import soot.jimple.infoflow.results.InfoflowResults;
 import soot.jimple.infoflow.taintWrappers.ITaintPropagationWrapper;
+import soot.jimple.toolkits.ide.icfg.BiDiInterproceduralCFG;
 import soot.options.Options;
 
 public class SetupApplication {
@@ -70,6 +75,8 @@ public class SetupApplication {
 	private final Map<String, Set<SootMethodAndClass>> callbackMethods =
 			new HashMap<String, Set<SootMethodAndClass>>(10000);
 
+	List<PreAnalysisHandler> preprocessors = new ArrayList<PreAnalysisHandler>();
+	private String injectionsFilePath = null;
 	private boolean stopAfterFirstFlow = false;
 	private boolean enableImplicitFlows = false;
 	private boolean enableStaticFields = true;
@@ -697,14 +704,42 @@ public class SetupApplication {
 
 		info.setCallgraphAlgorithm(callgraphAlgorithm);
 
-		List<PreAnalysisHandler> preprocessors = new ArrayList<PreAnalysisHandler>();
-		preprocessors.add(new RewireFlow());
+		
+		//preprocessors.add(new RewireFlow(injectionsFilePath));
+		
 		info.setPreProcessors(preprocessors);
 		
 		if (null != ipcManager) {
 			info.setIPCManager(ipcManager);
 		}
 
+		
+		info.addTaintPropagationHandler(new TaintPropagationHandler() {
+			
+			@Override
+			public Set<Abstraction> notifyFlowOut(Unit stmt, Abstraction d1,
+					Abstraction incoming, Set<Abstraction> outgoing,
+					BiDiInterproceduralCFG<Unit, SootMethod> cfg, FlowFunctionType type) {
+				//logger.debug("Flowout unit {} d1 {} in {}", stmt, d1, incoming);
+				return outgoing;
+			}
+			
+			@Override
+			public void notifyFlowIn(Unit stmt, Abstraction taint,
+					BiDiInterproceduralCFG<Unit, SootMethod> cfg, FlowFunctionType type) {
+				
+				if (
+						stmt.toString().contains("$r7 = virtualinvoke $r6.<com.github.wil3.android.flowtests.IP: java.lang.String getIp()>()")
+
+						){
+					//logger.debug("nop");
+				}
+				logger.debug("Propagating through {}, The taint {}, type {} ", stmt, taint, type);
+				
+			}
+		});
+		
+		
 		info.computeInfoflow(apkFileLocation, path, entryPointCreator, sourceSinkManager);
 		this.maxMemoryConsumption = info.getMaxMemoryConsumption();
 
@@ -925,5 +960,17 @@ public class SetupApplication {
 	 */
 	public void setUseFragments(boolean useFragments){
 		this.useFragments = useFragments;
+	}
+
+	public String getInjectionsFilePath() {
+		return injectionsFilePath;
+	}
+
+	public void setInjectionsFilePath(String injectionsFilePath) {
+		this.injectionsFilePath = injectionsFilePath;
+	}
+	
+	public void addPreprocessor(PreAnalysisHandler e){
+		preprocessors.add(e);
 	}
 }

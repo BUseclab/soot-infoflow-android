@@ -348,7 +348,8 @@ public class AndroidSourceSinkManager implements ISourceSinkManager {
 			
 			//Check if line number is included
 			SootMethod sm = cfg.getMethodOf(sCallSite);//sCallSite.getInvokeExpr().getMethod();
-			AndroidMethod am = new AndroidMethod(sm);
+			
+			AndroidMethod am = new AndroidMethod(sCallSite.getInvokeExpr().getMethod());
 			am.setLineNumber(sCallSite.getJavaSourceStartLineNumber());
 			am.setDeclaredClass(sm.getDeclaringClass().getName());
 			if (this.sourceMethods.containsKey(am.getSignature()))
