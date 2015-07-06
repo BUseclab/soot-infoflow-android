@@ -125,6 +125,10 @@ public class SetupApplication {
 	private long maxMemoryConsumption = -1;
 	private CodeEliminationMode codeEliminationMode = CodeEliminationMode.RemoveSideEffectFreeCode;
 
+	boolean pathAgnosticResults = true;
+	public static void setPathAgnosticResults(boolean pathAgnosticResults) {
+
+	}
 	/**
 	 * Creates a new instance of the {@link SetupApplication} class
 	 * 
@@ -175,14 +179,14 @@ public class SetupApplication {
 	 */
 	public void printSinks() {
 		if (this.sourceSinkProvider == null) {
-			System.err.println("Sinks not calculated yet");
+			logger.error("Sinks not calculated yet");
 			return;
 		}
-		System.out.println("Sinks:");
+		logger.info("Sinks:");
 		for (SourceSinkDefinition am : getSinks()) {
-			System.out.println(am.toString());
+			logger.info(am.toString());
 		}
-		System.out.println("End of Sinks");
+		logger.info("End of Sinks");
 	}
 
 	/**
@@ -200,14 +204,14 @@ public class SetupApplication {
 	 */
 	public void printSources() {
 		if (this.sourceSinkProvider == null) {
-			System.err.println("Sources not calculated yet");
+			logger.error("Sources not calculated yet");
 			return;
 		}
-		System.out.println("Sources:");
+		logger.info("Sources:");
 		for (SourceSinkDefinition am : getSources()) {
-			System.out.println(am.toString());
+			logger.info(am.toString());
 		}
-		System.out.println("End of Sources");
+		logger.info("End of Sources");
 	}
 
 	/**
@@ -224,12 +228,12 @@ public class SetupApplication {
 	 */
 	public void printEntrypoints() {
 		if (this.entrypoints == null)
-			System.out.println("Entry points not initialized");
+			logger.info("Entry points not initialized");
 		else {
-			System.out.println("Classes containing entry points:");
+			logger.info("Classes containing entry points:");
 			for (String className : entrypoints)
-				System.out.println("\t" + className);
-			System.out.println("End of Entrypoints");
+				logger.info("\t" + className);
+			logger.info("End of Entrypoints");
 		}
 	}
 
@@ -367,10 +371,10 @@ public class SetupApplication {
 			calculateCallbackMethods(resParser, lfp);
 
 			// Some informational output
-			System.out.println("Found " + lfp.getUserControls() + " layout controls");
+			logger.info("Found " + lfp.getUserControls() + " layout controls");
 		}
 		
-		System.out.println("Entry point calculation done.");
+		logger.info("Entry point calculation done.");
 
 		// Clean up everything we no longer need
 		soot.G.reset();
@@ -502,7 +506,7 @@ public class SetupApplication {
 									break;
 								}
 								if (!currentClass.hasSuperclass()) {
-									System.err.println("Callback method " + methodName + " not found in class "
+									logger.error("Callback method " + methodName + " not found in class "
 											+ callbackClass.getName());
 									break;
 								}
@@ -518,7 +522,7 @@ public class SetupApplication {
 						for (LayoutControl lc : controls)
 							registerCallbackMethodsForView(callbackClass, lc);
 				} else
-					System.err.println("Unexpected resource type for layout class");
+					logger.error("Unexpected resource type for layout class");
 			}
 		}
 
@@ -527,7 +531,7 @@ public class SetupApplication {
 			Set<SootMethodAndClass> callbacksPlain = new HashSet<SootMethodAndClass>();
 			for (Set<SootMethodAndClass> set : this.callbackMethods.values())
 				callbacksPlain.addAll(set);
-			System.out.println("Found " + callbacksPlain.size() + " callback methods for "
+			logger.info("Found " + callbacksPlain.size() + " callback methods for "
 					+ this.callbackMethods.size() + " components");
 		}
 	}
@@ -667,7 +671,7 @@ public class SetupApplication {
 		if (this.sourceSinkProvider == null)
 			throw new RuntimeException("Sources and/or sinks not calculated yet");
 
-		System.out.println("Running data flow analysis on " + apkFileLocation + " with " + getSources().size()
+		logger.info("Running data flow analysis on " + apkFileLocation + " with " + getSources().size()
 				+ " sources and " + getSinks().size() + " sinks...");
 		Infoflow info;
 		if (cfgFactory == null)
@@ -683,11 +687,12 @@ public class SetupApplication {
 		else
 			path = Scene.v().getAndroidJarPath(androidJar, apkFileLocation);
 
+		
 		info.setTaintWrapper(taintWrapper);
 		if (onResultsAvailable != null)
 			info.addResultsAvailableHandler(onResultsAvailable);
 
-		System.out.println("Starting infoflow computation...");
+		logger.info("Starting infoflow computation...");
 		info.setSootConfig(sootConfig);
 
 		info.setStopAfterFirstFlow(stopAfterFirstFlow);

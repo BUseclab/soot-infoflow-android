@@ -82,7 +82,7 @@ public class FragmentLocator {
 		}
 		
 		
-		identifyObfuscatedPackages();
+		//identifyObfuscatedPackages();
 		
 	}
 	

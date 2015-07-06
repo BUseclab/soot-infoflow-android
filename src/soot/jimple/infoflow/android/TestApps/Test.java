@@ -420,7 +420,10 @@ public class Test {
 				flowSensitiveAliasing ? "--aliasflowsens" : "--aliasflowins",
 				computeResultPaths ? "--paths" : "--nopaths",
 				aggressiveTaintWrapper ? "--aggressivetw" : "--nonaggressivetw",
-				"--pathalgo", pathAlgorithmToString(pathBuilder) };
+				"--pathalgo", pathAlgorithmToString(pathBuilder) 
+				
+		
+		};
 		System.out.println("Running command: " + executable + " " + Arrays.toString(command));
 		try {
 			ProcessBuilder pb = new ProcessBuilder(command);

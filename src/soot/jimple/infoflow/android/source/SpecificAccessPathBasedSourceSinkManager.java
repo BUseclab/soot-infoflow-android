@@ -6,6 +6,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import soot.PrimType;
 import soot.RefType;
 import soot.SootClass;
@@ -25,6 +28,8 @@ import soot.jimple.infoflow.android.source.data.SourceSinkDefinition;
 import soot.jimple.infoflow.data.AccessPath;
 import soot.jimple.infoflow.data.SootMethodAndClass;
 import soot.jimple.infoflow.source.SourceInfo;
+import soot.jimple.internal.JAssignStmt;
+import soot.jimple.internal.JInstanceFieldRef;
 
 public class SpecificAccessPathBasedSourceSinkManager extends AndroidSourceSinkManager{
 
@@ -39,33 +44,71 @@ public class SpecificAccessPathBasedSourceSinkManager extends AndroidSourceSinkM
 			Map<Integer, LayoutControl> layoutControls) {
 		super(sources, sinks, callbackMethods, layoutMatching, layoutControls);
 	}
-	
-	@Override
-	public SourceInfo getSourceInfo(Stmt sCallSite, InterproceduralCFG<Unit, SootMethod> cfg) {
-		// Callbacks and UI controls are already properly handled by our parent
-		// implementation
-		SourceType type = getSourceType(sCallSite, cfg);
-		if (type == SourceType.NoSource)
-			return null;
-		if (type == SourceType.Callback || type == SourceType.UISource)
-			return super.getSourceInfo(sCallSite, type);
-		
-		// This is a method-based source, so we need to obtain the correct
-		// access path
-		final String signature = methodToSignature.getUnchecked(
-				sCallSite.getInvokeExpr().getMethod());
-		
-		//First try more specific. We do this by 
-		//create the signature of this callsite with the class and line number
-		//If this fails to match we try more generically with out class and line number
-		SootMethod sm = cfg.getMethodOf(sCallSite);
+	private final Logger logger = LoggerFactory.getLogger(getClass());
+
+	private String getLineNumberSignature(SootMethod sm, Stmt sCallSite){
 		AndroidMethod am = new AndroidMethod(sCallSite.getInvokeExpr().getMethod());
 		am.setLineNumber(sCallSite.getJavaSourceStartLineNumber());
 		am.setDeclaredClass(sm.getDeclaringClass().getName());
 		String signatureWithLineNumber = am.getSignature();
-		SourceSinkDefinition specificDef = sourceMethods.get(signatureWithLineNumber);
+		return signatureWithLineNumber;
+	}
+	@Override
+	public SourceInfo getSourceInfo(Stmt sCallSite, InterproceduralCFG<Unit, SootMethod> cfg) {
+		// Callbacks and UI controls are already properly handled by our parent
+		// implementation
+		if (sCallSite.toString().contains("Auction: double price")){
+			logger.trace("");
+		}
 		
-		SourceSinkDefinition def = (null != specificDef) ? specificDef : sourceMethods.get(signature);
+		
+		SourceSinkDefinition def = null;
+		
+		//First check and see if a field
+		if (sCallSite instanceof JAssignStmt){
+			Value value = ((JAssignStmt)sCallSite).getRightOp();
+			if (value instanceof JInstanceFieldRef){
+				JInstanceFieldRef ref = (JInstanceFieldRef) value;
+				def = sourceMethods.get(ref.getFieldRef().toString());
+				if (def != null){
+					return new SourceInfo(new AccessPath(((JAssignStmt)sCallSite).getLeftOp(), true));
+				}
+			}
+		}
+		
+
+		if (def == null){
+			
+	
+			SourceType type = getSourceType(sCallSite, cfg);
+			if (type == SourceType.NoSource)
+				return null;
+			if (type == SourceType.Callback || type == SourceType.UISource){
+				SootMethod sm1 = cfg.getMethodOf(sCallSite);
+				return null;//super.getSourceInfo(sCallSite, type);
+			}
+			
+			
+			// This is a method-based source, so we need to obtain the correct
+			// access path
+			final String signature = methodToSignature.getUnchecked(
+					sCallSite.getInvokeExpr().getMethod());
+			
+			//First try more specific. We do this by 
+			//create the signature of this callsite with the class and line number
+			//If this fails to match we try more generically with out class and line number
+			SootMethod sm = cfg.getMethodOf(sCallSite);
+			
+			if (!sm.getDeclaringClass().getPackageName().contains(appPackageName)){
+				//logger.debug("Not including class {} because it is not in the app package {} ", sCallSite.toString(), appPackageName);
+				//return null;
+			}
+		
+			String signatureWithLineNumber = getLineNumberSignature(sm, sCallSite);
+			SourceSinkDefinition specificDef = sourceMethods.get(signatureWithLineNumber);
+			def = (null != specificDef) ? specificDef : sourceMethods.get(signature);
+			
+		}
 		
 		
 		
@@ -141,16 +184,32 @@ public class SpecificAccessPathBasedSourceSinkManager extends AndroidSourceSinkM
 	@Override
 	public boolean isSink(Stmt sCallSite, InterproceduralCFG<Unit, SootMethod> cfg,
 			AccessPath sourceAccessPath) {
-		if (sCallSite.toString().contains("$r3.<android.widget.TextView: void setText")){
-			new String();
-		}
+		
 		if (!sCallSite.containsInvokeExpr())
 			return false;
 				
+		if (sCallSite.toString().contains("get(")){
+			//logger.info("");
+		}
+		SourceSinkDefinition specificDef = null;
+		try {
+			SootMethod sm = cfg.getMethodOf(sCallSite);
+			String signatureWithLineNumber = getLineNumberSignature(sm, sCallSite);
+			specificDef = sinkMethods.get(signatureWithLineNumber);
+			
+			if (!sm.getDeclaringClass().getPackageName().contains(appPackageName)){
+				//logger.debug("Not including class {} as sink because it is not in the app package {} ", sCallSite.toString(), appPackageName);
+				//return false;
+			}
+			
+			
+		} catch(Exception e){}
+		
+		
 		// Get the sink definition
 		final String methodSignature = methodToSignature.getUnchecked(
 				sCallSite.getInvokeExpr().getMethod());
-		SourceSinkDefinition def = sinkMethods.get(methodSignature);
+		SourceSinkDefinition def = (null != specificDef) ? specificDef : sinkMethods.get(methodSignature);
 		if (def == null)
 			return false;
 		

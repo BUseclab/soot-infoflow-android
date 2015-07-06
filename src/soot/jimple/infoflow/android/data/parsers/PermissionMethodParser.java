@@ -43,6 +43,9 @@ public class PermissionMethodParser implements ISourceSinkDefinitionProvider {
 	private final String regex =      "^((.+):(\\d+)\\s*)?<(.+):\\s*(.+)\\s+(.+)\\s*\\((.*)\\)>\\s*(.*?)(\\s+->\\s+(.*))?$";
 	private final String regexNoRet = "^((.+):(\\d+)\\s*)?<(.+):\\s*(.+)\\s*\\((.*)\\)>\\s*(.*?)?(\\s+->\\s+(.*))?$";
 
+	
+	//Allow for class fields to be included
+	private final String fieldRegex = "^((.+):(\\d+)\\s*)?<(.+):\\s*([^ ]+)\\s+([^ ]+)>(\\s+->\\s+([^ ]*))?$";
 //	private final String regexNoRet = "^<(.+):\\s(.+)\\s?(.+)\\s*\\((.*)\\)>\\s+(.*?)(\\s+->\\s+(.*))?+$";
 	
 	public static PermissionMethodParser fromFile(String fileName) throws IOException {
@@ -103,6 +106,7 @@ public class PermissionMethodParser implements ISourceSinkDefinitionProvider {
 		
 		Pattern p = Pattern.compile(regex);
 		Pattern pNoRet = Pattern.compile(regexNoRet);
+		Pattern fieldPattern = Pattern.compile(fieldRegex);
 		
 		for(String line : this.data){	
 			if (line.isEmpty() || line.startsWith("%"))
@@ -131,11 +135,52 @@ public class PermissionMethodParser implements ISourceSinkDefinitionProvider {
 						sinkList.add(singleMethod);
 					else if (am.isNeitherNor())
 						neitherList.add(singleMethod);
+				} 
+				else {
+					Matcher fieldMatch = fieldPattern.matcher(line);
+					if (fieldMatch.find()){
+						AndroidMethod am = parseField(fieldMatch);
+						am.setField(true);
+						SourceSinkDefinition singleMethod = new SourceSinkDefinition(am);
+						
+						if (am.isSource())
+							sourceList.add(singleMethod);
+						else if (am.isSink())
+							sinkList.add(singleMethod);
+						else if (am.isNeitherNor())
+							neitherList.add(singleMethod);
+					} else {
+						System.err.println("Line does not match: " + line);
+					}
 				}
-				else
-					System.err.println("Line does not match: " + line);
 			}
 		}
+	}
+	
+	private AndroidMethod parseField(Matcher m){
+		String className = m.group(2);
+		String lineNumberGroup = m.group(3);
+		int lineNumber = (lineNumberGroup == null) ? -1 : Integer.parseInt(lineNumberGroup);
+		
+		String declaredClass = m.group(4);
+		String returnType = m.group(5);
+		String fieldName = m.group(6);
+		
+		//See if this hack works
+		AndroidMethod am = new AndroidMethod(fieldName, null, returnType, declaredClass);
+		am.setLineNumber(lineNumber);
+		am.setDeclaredClass(className);
+		String target = m.group(8);
+		if(target.equals("_SOURCE_"))
+			am.setSource(true);
+		else if(target.equals("_SINK_"))
+			am.setSink(true);
+		else if(target.equals("_NONE_"))
+			am.setNeitherNor(true);
+		else
+			throw new RuntimeException("error in target definition: " + target);
+		
+		return am;
 	}
 
 	private AndroidMethod parseMethod(Matcher m, boolean hasReturnType) {
