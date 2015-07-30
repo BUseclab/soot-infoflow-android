@@ -303,6 +303,9 @@ public class SourceSinkDefinition {
 		} else if (!returnValues.equals(other.returnValues))
 			return false;
 		
+		if (method.getDeclaredClass() == null || other.getMethod().getDeclaredClass() == null) {
+			return false;
+		}
 		if (!method.getDeclaredClass().equals(other.getMethod().getDeclaredClass())
 			&& method.getLineNumber() != other.getMethod().getLineNumber()){
 				return false;
